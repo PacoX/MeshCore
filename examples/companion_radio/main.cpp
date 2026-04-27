@@ -36,8 +36,14 @@ static uint32_t _atoi(const char* sp) {
 
 #ifdef ESP32
   #ifdef WIFI_SSID
-    #include <helpers/esp32/SerialWifiInterface.h>
-    SerialWifiInterface serial_interface;
+    #ifdef WIREGUARD_ENABLED
+      #include <helpers/esp32/WireGuardSerialInterface.h>
+      #include <helpers/esp32/WireGuardConfig.h>
+      WireGuardSerialInterface serial_interface;
+    #else
+      #include <helpers/esp32/SerialWifiInterface.h>
+      SerialWifiInterface serial_interface;
+    #endif
     #ifndef TCP_PORT
       #define TCP_PORT 5000
     #endif
@@ -195,8 +201,22 @@ void setup() {
 
 #ifdef WIFI_SSID
   board.setInhibitSleep(true);   // prevent sleep when WiFi is active
-  WiFi.begin(WIFI_SSID, WIFI_PWD);
-  serial_interface.begin(TCP_PORT);
+  #ifdef WIREGUARD_ENABLED
+    WireGuardConfig wg_config;
+    wg_config.wifi_ssid = WIFI_SSID;
+    wg_config.wifi_password = WIFI_PWD;
+    wg_config.local_ip = WG_LOCAL_IP;
+    wg_config.private_key = WG_PRIVATE_KEY;
+    wg_config.peer_public_key = WG_PEER_PUBLIC_KEY;
+    wg_config.endpoint_address = WG_ENDPOINT_ADDRESS;
+    wg_config.endpoint_port = WG_ENDPOINT_PORT;
+    wg_config.ntp_server = WG_NTP_SERVER;
+    wg_config.ntp_timeout_ms = WG_NTP_TIMEOUT_MS;
+    serial_interface.begin(wg_config, TCP_PORT);
+  #else
+    WiFi.begin(WIFI_SSID, WIFI_PWD);
+    serial_interface.begin(TCP_PORT);
+  #endif
 #elif defined(BLE_PIN_CODE)
   serial_interface.begin(BLE_NAME_PREFIX, the_mesh.getNodePrefs()->node_name, the_mesh.getBLEPin());
 #elif defined(SERIAL_RX)
@@ -223,6 +243,9 @@ void setup() {
 }
 
 void loop() {
+#if defined(ESP32) && defined(WIFI_SSID) && defined(WIREGUARD_ENABLED)
+  serial_interface.loop();
+#endif
   the_mesh.loop();
   sensors.loop();
 #ifdef DISPLAY_CLASS
