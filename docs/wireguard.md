@@ -23,8 +23,8 @@ Les valeurs par défaut et les vérifications associées sont aussi décrites da
 ### Générer les clés WireGuard
 
 Sur une machine Linux avec les outils WireGuard installés :
-
-    wg genkey | tee privatekey | wg pubkey > publickey
+wg genkey | tee privatekey | wg pubkey > publickey
+    
 
 Ensuite, utilise le contenu de privatekey comme valeur de WG_PRIVATE_KEY et le contenu de publickey comme clé publique du pair côté serveur.
 
